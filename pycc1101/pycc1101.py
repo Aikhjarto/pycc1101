@@ -185,18 +185,35 @@ class TICC1101(object):
         part_number = self._readSingleByte(self.PARTNUM)
         component_version = self._readSingleByte(self.VERSION)
 
+        if self.debug:
+            print("Part Number: {:x}".format(part_number))
+            print("Component Version: {:x}".format(component_version))
+
         # These asserts are based on the documentation
         # Section 29.3 "Status Register Details"
         # On reset PARTNUM == 0x00
         # On reset VERSION == 0x14
 
-        assert part_number == 0x00
-        assert component_version == 0x14
+        assert part_number == 0x00, "Self test: Wrong part number"
+        assert component_version == 0x14, "Self test: Wrong component version"
+          
+        self._writeSingleByte(self.IOCFG0, 0x2f)  # set to low
+        assert self._pGDO0.value() == 0, "Self test: GDO0 should be low"
+        self._writeSingleByte(self.IOCFG0, 0x2f | 1<<6)  # set to high
+        assert self._pGDO0.value() == 1, "Self test: GDO0 should be high"
+        self._writeSingleByte(self.IOCFG0, 0x2b)  # osc stable
+        assert self._pGDO0.value() == 1, "Self test: GDO0 returns 'Osc unstable'"
 
+        self._writeSingleByte(self.IOCFG2, 0x2f)  # set to low
+        assert self._pGDO2.value() == 0, "GDO2 should be low"
+        self._writeSingleByte(self.IOCFG2, 0x2f | 1<<6)  # set to high
+        assert self._pGDO2.value() == 1, "GDO2 should be high"
+        self._writeSingleByte(self.IOCFG2, 0x2b)  # osc stable
+        assert self._pGDO2.value() == 1, "Self test: GDO2 returns 'Osc unstable'"
+        
         if self.debug:
-            print("Part Number: {:x}".format(part_number))
-            print("Component Version: {:x}".format(component_version))
             print("Self test OK")
+
 
     def sidle(self):
         self._strobe(self.SIDLE)

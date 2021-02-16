@@ -136,7 +136,7 @@ class TICC1101(object):
     FSM_TX_END = const(0x14)
     FSM_RXTX_SWITCH = const(0x15)
     FSM_TXFIFO_UNDERFLOW = const(0x16)
-    REFCLK = const(26e6)
+    REFCLK = const(26_000_000)
 
     def __init__(self, spi, pCS, pGDO0, pGDO2, debug=True):
         self._spi = spi

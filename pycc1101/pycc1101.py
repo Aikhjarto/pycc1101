@@ -250,7 +250,9 @@ class TICC1101(object):
 
     def getRegisterConfiguration(self, register, showConfig=True):
         def toBits(byte):
-            return bin(byte)[2:].zfill(8)
+            binary = bin(byte)[2:]
+            binary = "0" * (8 - len(binary)) + binary
+            return binary
 
         if register == "PKTCTRL1":
             bits = toBits(self._readSingleByte(self.PKTCTRL1))

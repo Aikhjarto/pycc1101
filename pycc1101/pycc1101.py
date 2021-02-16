@@ -145,41 +145,207 @@ class TICC1101(object):
     def _usDelay(self, useconds):
         time.sleep(useconds / 1000000.0)
 
+    def _write_readinto(self, data_to_write, buf):
+        self._pCS.off()
+        self._spi.write_readinto(data_to_write, buf)
+        self._pCS.on()        
+
     def _writeSingleByte(self, address, byte_data):
         buffer = bytearray(2)
-        self._spi.write_readinto(bytearray([self.WRITE_SINGLE_BYTE | address, byte_data]), buffer)
+        self._write_readinto(bytearray([self.WRITE_SINGLE_BYTE | address, byte_data]), buffer)
         return buffer
 
     def _readSingleByte(self, address):
         buffer = bytearray(2)
-        self._spi.write_readinto(bytearray([self.READ_SINGLE_BYTE | address, 0x00]), buffer)
+        self._write_readinto(bytearray([self.READ_SINGLE_BYTE | address, 0x00]), buffer)
         return buffer[1]
 
-    def _readBurst(self, start_address, length):
-        buff = []
-        ret = []
+    # reads bytes in burst mode
+    # returns the read bytes
+    def _readBurst(self, addr, length):
+        buf = writeBuf = bytearray(length + 1)
+        for i in writeBuf:
+            writeBuf[i] = (addr + i * 8) | self.READ_BURST
 
-        for x in range(length + 1):
-            addr = (start_address + (x * 8)) | self.READ_BURST
-            buff.append(addr)
-
-        ret = self._spi.xfer(buff)[1:]
-
-        if self.debug:
-            print("_readBurst | start_address = {:x}, length = {:x}".format(start_address, length))
-
-        return ret
+        self._write_readinto(writeBuf, buf)
+        return buf
 
     def _writeBurst(self, address, data):
         data.insert(0, (self.WRITE_BURST | address))
+        buf = bytearray(len(data))
+        self._write_readinto(bytearray(data), buf)
 
-        return self._spi.xfer(data)
+        if self.debug:
+            for dat in buf:
+
+                def toBits(byte):
+                    byte = bin(byte)[2:]
+                    return "0" * (8 - len(byte)) + byte
+
+                byte = toBits(data)
+                print(
+                    "CHIP_RDY: ",
+                    str(byte[0]),
+                    " STATE: ",
+                    str(byte[1:4]),
+                    " FIFO- ",
+                    int(str(byte[4:]), 2),
+                )
+        return buf
+
+    # writes burst signal, to send data, and checks if the FIFO is ready for new data
+    def _writeBurstTX(self, addr, bytelist):
+        bytelist.insert(0, (self.WRITE_BURST | addr))
+
+        # set up the the GDO0
+        # Asserts when the TX-FIFO is full
+        # De-asserts when the TX-FIFO is drained below TX-FIFO threshold
+        self._writeSingleByte(self.IOCFG0, 0x03)
+
+        # set up GDO2
+        # Asserts when sync word has been received
+        # de-asserts at the end of the packet
+        self._writeSingleByte(self.IOCFG2, 0x06)
+
+        # set the TX-STATE
+        self._setTXState()
+
+        if self.debug:
+            marcstate = self._getMRStateMachineState()
+            print("Marcstate: {:d} ".format(marcstate))
+
+        while self._pGDO2.value() == 0:  # wait until the sync word has been sent
+            if self.debug:
+                print("sendBurstRX | Waiting until the sync word has been sent")
+
+        self._pCS.off()  #
+
+        if self._pGDO2.value() == 1:
+            for d in bytelist:
+                while self._pGDO0.value() == 1:
+                    if self.debug:
+                        print("Waiting to send new data to the FIFO!")
+                        self._usDelay(100)
+
+                buf = bytearray(1)
+                self._spi.write_readinto(bytearray([d]), buf)  # write the data to the TX-FIFO
+
+                if buf[0] & 0x70 == 0x70:  # check if there is an underflow
+                    if self.debug:
+                        print("TX-FIFO-UNDERFLOW")
+                    self._flushTXFifo()
+                    return False
+
+                if self.debug:
+
+                    def toBits(byte):
+                        byte = bin(byte)[2:]
+                        return "0" * (8 - len(byte)) + byte
+
+                    byte = toBits(buf[0])
+                    print("Send data: ", d)
+                    print(
+                        "CHIP_RDY: ",
+                        str(byte[0]),
+                        " STATE: ",
+                        str(byte[1:4]),
+                        " FIFO- ",
+                        int(str(byte[4:]), 2),
+                    )
+        self._pCS.on()
+        return True
+
+    # writes burst signal, to send data, and checks if the FIFO is ready for new data
+    def _readBurstRX(self, length):
+        buff = []
+        ret = []
+
+        buff.append(0xFF)
+
+        for x in range(length):
+            buff.append(0)
+
+        # set up GDO0
+        # Asserts when the RX-FIFO is filled above the threshold or the end of packet is reached
+        # De-asserts when the RX-FIFO is empty
+        self._writeSingleByte(self.IOCFG0, 0x00)
+
+        # set up GDO2
+        # Asserts when sync word has been received
+        # de-asserts at the end of the packet
+        self._writeSingleByte(self.IOCFG2, 0x06)
+
+        while self._pGDO2.value() == 0:  # wait until the sync word has been received
+            pass
+
+        if length < 64:  # reveive the complete packet
+            numBytes = self._readSingleByte(self.RXBYTES)
+            while self._pGDO2.value() == 1 and numBytes != length:
+                if self.debug:
+                    print(
+                        "Waiting until the complete packet has been reveived-", numBytes
+                    )
+                    self._usDelay(100)
+                numBytes = self._readSingleByte(self.RXBYTES)
+
+            self._pCS.off()
+            for d in buff:
+                data = bytearray(1)
+
+                self._spi.write_readinto(bytearray([d]), data)
+                ret.append(int(data[0]))
+                if self.debug:
+
+                    # def toBits(byte):
+                    #     byte = bin(byte)[2:]
+                    #     return "0" * (8 - len(byte)) + byte
+
+                    # byte = toBits(data[0])
+                    print(
+                        "Data: ",
+                        data[0],
+                        "GPO0 = ",
+                        self._pGDO0.value(),
+                        "GPO2 = ",
+                        self._pGDO2.value(),
+                    )
+        else:
+            numBytes = self._readSingleByte(self.RXBYTES)
+            remDat = length
+            if numBytes > 0 and (
+                self._getMRStateMachineState() != self.FSM_RXFIFO_OVERFLOW
+            ):
+                self._pCS.off()
+                for d in buff:
+                    data = bytearray(1)
+
+                    while (
+                        self._pGDO0.value() == 0 and remDat > 30
+                    ):  # wait until the fifo were filled
+                        pass
+
+                    self._spi.write_readinto(bytearray([d]), data)
+                    print(
+                        "Data: ",
+                        data[0],
+                        "GPO0 = ",
+                        self._pGDO0.value(),
+                        "GPO2 = ",
+                        self._pGDO2.value(),
+                    )
+                    ret.append(data[0])
+                    remDat -= 1
+
+        self._pCS.on()
+        return ret
 
     def reset(self):
         return self._strobe(self.SRES)
 
     def _strobe(self, address):
-        return self._spi.xfer([address, 0x00])
+        buf = bytearray(2)
+        self._write_readinto(bytearray([address, 0x00]), buf)
+        return buf[1]
 
     def selfTest(self):
         part_number = self._readSingleByte(self.PARTNUM)
@@ -612,15 +778,24 @@ class TICC1101(object):
             return False
 
     def recvData(self):
-        rx_bytes_val = self._readSingleByte(self.RXBYTES)
+        self._setRXState()
+        self._usDelay(1000)
+        rx_bytes_val = self._readSingleByte(self.RXBYTES)  # get the number of bytes in the fifo
+	data = []
 
         #if rx_bytes_val has something and Underflow bit is not 1
         if (rx_bytes_val & 0x7F and not (rx_bytes_val & 0x80)):
             sending_mode = self.getPacketConfigurationMode()
-
+            valPktCtrl1 = self.getRegisterConfiguration("PKTCTRL1", False)
             if sending_mode == "PKT_LEN_FIXED":
                 data_len = self._readSingleByte(self.PKTLEN)
+                data = self._readBurstRX(self.RXFIFO, data_len)
 
+                # check if there is an address-check
+                if self.getRegisterConfiguration("PKTCTRL1", False)[6:] != "00":
+                    pass
+                else:
+                    data = data[1:]
             elif sending_mode == "PKT_LEN_VARIABLE":
                 max_len = self._readSingleByte(self.PKTLEN)
                 data_len = self._readSingleByte(self.RXFIFO)
@@ -628,35 +803,80 @@ class TICC1101(object):
                 if data_len > max_len:
                     if self.debug:
                         print("Len of data exceeds the configured maximum packet len")
+                    self._flushRXFifo()
+                    self.sidle()
                     return False
 
                 if self.debug:
                     print("Receiving a variable len packet")
-                    print("max len: %d".format(max_len))
-                    print("Packet length: %d".format(data_len))
+                    print("max len: {:d}".format(max_len))
+                    print("Packet length: {:d}".format(data_len))
 
+                data = self._readBurstRX(self.RXFIFO, data_len)
+
+                # check if there is an address-check
+                if self.getRegisterConfiguration("PKTCTRL1", False)[6:] != "00":
+                    data = data[2:]
+                else:
+                    data = data[1:]
             elif sending_mode == "PKT_LEN_INFINITE":
-                # ToDo
-                raise Exception("MODE NOT IMPLEMENTED")
+                print("Mode: PKT_LEN_INFINITE work in progress")
+                if rx_bytes_val > 0:
 
-            data = self._readBurst(self.RXFIFO, data_len)
-            valPktCtrl1 = self.getRegisterConfiguration("PKTCTRL1", False)
+                    # self._readSingleByte(self.RXFIFO)
+                    if self.getRegisterConfiguration("PKTCTRL1", False)[6:] != "00":
+                        self._readSingleByte(self.RXFIFO)
+                        # dataAdd = self._readSingleByte(self.RXFIFO)
+                    dataLen = self._readSingleByte(self.RXFIFO)
+                    dataLen2 = self._readSingleByte(self.RXFIFO)
 
+                    data_len = dataLen + 0 * dataLen2
+                    if self.debug:
+                        print("Receiving a infinite len packet-infinite")
+                        print("dataLen2: {:d} dataLen: {:d}".format(dataLen2, dataLen))
+
+                    if data_len > 255:
+                        print("Data length: {:d}".format(data_len))
+                        data_len2 = 256 * dataLen2
+                        data = self._readBurstRX(self.RXFIFO, data_len2)[1:]
+
+                    self._writeSingleByte(self.PKTLEN, dataLen)
+                    self.setPacketMode("PKT_LEN_FIXED")
+                    data2 = self._readBurstRX(self.RXFIFO, dataLen - 3)[1:]
+                    if not data2:
+                        self._flushRXFifo()
+                        self.sidle()
+                        if self.debug:
+                            print("RX-FIFO-ERROR")
+                        return False
+                    data.extend(data2)
+                else:
+                    self._flushRXFifo()
+                    self.sidle()
+                    if self.debug:
+                        print("RX-FIFO-ERROR")
+                    return False
+
+            # if self.getRegisterConfiguration("PKTCTRL1", False)[6:] != "00":
+            #   data = data
             if valPktCtrl1[5] == "1":  # PKTCTRL1[5] == APPEND_STATUS
             # When enabled, two status bytes will be appended to the payload of the
             # packet. The status bytes contain RSSI and LQI values, as well as CRC OK.
 
                 rssi = self._readSingleByte(self.RXFIFO)
                 val = self._readSingleByte(self.RXFIFO)
-                lqi = val & 0x7f
+                lqi = val & 0x7F
 
             if self.debug and valPktCtrl1[5] == "1":
+                print("Marcstate after recv: ", self._getMRStateMachineState())
                 print("Packet information is enabled")
-                print("RSSI: %d".format((rssi)))
-                print("VAL: %d".format((val)))
-                print("LQI: %d".format((lqi)))
-
-            print("Data: ") + str(data)
-
+                print("RSSI: {:d}".format((rssi)))
+                print("VAL: {:d}".format((val)))
+                print("LQI: {:d}".format((lqi)))
+                print("Data: " + str(data))
             self._flushRXFifo()
             return data
+        else:
+            # if self.debug:
+            # print("RX-Bytes-Error: ", rx_bytes_val)
+            return False

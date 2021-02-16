@@ -414,6 +414,7 @@ class TICC1101(object):
         self._writeSingleByte(self.SYNC1, int(sync_word[:2], 16))  # High Byte
         self._writeSingleByte(self.SYNC0, int(sync_word[2:], 16))  # Low Byte
 
+    # Returns the configuration of a specific register as a bit-represented string
     def getRegisterConfiguration(self, register, showConfig=True):
         def toBits(byte):
             binary = bin(byte)[2:]
@@ -424,7 +425,7 @@ class TICC1101(object):
             bits = toBits(self._readSingleByte(self.PKTCTRL1))
 
             if showConfig:
-                print("PKTCTRL1")
+                print("\n**PKTCTRL1**")
                 print("PQT[7:5] = {}".format(bits[:3]))
                 print("CRC_AUTOFLUSH = {}".format(bits[4]))
                 print("APPEND_STATUS = {}".format(bits[5]))
@@ -434,7 +435,7 @@ class TICC1101(object):
             bits = toBits(self._readSingleByte(self.PKTCTRL0))
 
             if showConfig:
-                print("PKTCTRL0")
+                print("\n**PKTCTRL0**")
                 print("WHITE_DATA = {}".format(bits[1]))
                 print("PKT_FORMAT[1:0] = {}".format(bits[2:4]))
                 print("CRC_EN = {}".format(bits[5]))
@@ -444,21 +445,21 @@ class TICC1101(object):
             bits = toBits(self._readSingleByte(self.ADDR))
 
             if showConfig:
-                print("ADDR")
+                print("\n**ADDR**")
                 print("DEVICE_ADDR = {}".format(bits))
 
         elif register == "CHANNR":
             bits = toBits(self._readSingleByte(self.CHANNR))
 
             if showConfig:
-                print("CAHNNR")
+                print("\n**CHANNR**")
                 print("CHAN = {}".format(bits))
 
         elif register == "PKTSTATUS":
             bits = toBits(self._readSingleByte(self.CHANNR))
 
             if showConfig:
-                print("PKTSTATUS")
+                print("\n**PKTSTATUS**")
                 print("CRC_OK = {}".format(bits[0]))
                 print("CS = {}".format(bits[1]))
                 print("PQT_REACHED = {}".format(bits[2]))
@@ -471,7 +472,7 @@ class TICC1101(object):
             bits = toBits(self._readSingleByte(self.MDMCFG2))
 
             if showConfig:
-                print("MDMCFG2")
+                print("\n**MDMCFG2**")
                 print("DEM_DCFILT_OFF = {}".format(bits[0]))
                 print("MOD_FORMAT = {}".format(bits[1:4]))
                 print("MANCHESTER_EN = {}".format(bits[4]))
@@ -481,10 +482,20 @@ class TICC1101(object):
             bits = toBits(self._readSingleByte(self.MDMCFG1))
 
             if showConfig:
-                print("MDMCFG1")
+                print("\n**MDMCFG1**")
                 print("FEC_EN = {}".format(bits[0]))
                 print("NUM_PREAMBLE = {}".format(bits[1:4]))
                 print("CHANSPC_E = {}".format(bits[6:]))
+
+        elif register == "MCSM1":
+            bits = toBits(self._readSingleByte(self.MCSM1))
+
+            if showConfig:
+                print("\n**MCSM1**")
+                print("MCSM1 = {}".format(bits))
+                print("CCA_MODE = {}".format(bits[2:4]))
+                print("RXOFF_MODE = {}".format(bits[4:6]))
+                print("TXOFF_MODE = {}".format(bits[6:]))
 
         return bits
 

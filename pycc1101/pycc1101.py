@@ -111,6 +111,31 @@ class TICC1101(object):
     RCCTRL1_STATUS = const(0xFC)  # Last RC Oscillator Calibration Result
     RCCTRL0_STATUS = const(0xFD)  # Last RC Oscillator Calibration Result
 
+    # FSM States
+    FSM_SLEEP = const(0x00)
+    FSM_IDLE = const(0x01)
+    FSM_XOFF = const(0x02)
+    FSM_VCOON_MC = const(0x03)
+    FSM_REGON_MC = const(0x04)
+    FSM_MANCAL = const(0x05)
+    FSM_VCOON = const(0x06)
+    FSM_REGON = const(0x07)
+    FSM_STARTCAL = const(0x08)
+    FSM_BWBOOST = const(0x09)
+    FSM_FS_LOCK = const(0x0A)
+    FSM_IFADCON = const(0x0B)
+    FSM_ENDCAL = const(0x0C)
+    FSM_RX = const(0x0D)
+    FSM_RX_END = const(0x0E)
+    FSM_RX_RST = const(0x0F)
+    FSM_TXRX_SWITCH = const(0x10)
+    FSM_RXFIFO_OVERFLOW = const(0x11)
+    FSM_FSTXON = const(0x12)
+    FSM_TX = const(0x13)
+    FSM_TX_END = const(0x14)
+    FSM_RXTX_SWITCH = const(0x15)
+    FSM_TXFIFO_UNDERFLOW = const(0x16)
+
     def __init__(self, bus=0, device=0, speed=50000, debug=True):
         try:
             self.debug = debug

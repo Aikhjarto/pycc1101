@@ -439,6 +439,7 @@ class TICC1101(object):
         # first 5 bits
         return (self._readSingleByte(self.MARCSTATE) & 0x1F)
 
+    # Returns the packet configuration
     def getPacketConfigurationMode(self):
         pktCtrlVal = self.getRegisterConfiguration("PKTCTRL0", False)
 
@@ -450,7 +451,16 @@ class TICC1101(object):
 
         elif pktCtrlVal[6:] == "10":  # Infinite packet len mode
             return "PKT_LEN_INFINITE"
+        else:
+            return "ERROR_PKT_LEN"
 
+    # Sets the packet configuration
+    # PKT_LEN_FIXED: Fixed packet length mode.
+    #               Length configured in PKTLEN register
+    # PKT_LEN_VARIABLE: Variable packet length mode.
+    #                   Packet length configured by the
+    #                   first byte after sync word
+    # PKT_LEN_INFINITE: Infinite packet length mode
     def setPacketMode(self, mode="PKT_LEN_VARIABLE"):
         regVal = list(self.getRegisterConfiguration("PKTCTRL0", False))
 
@@ -466,13 +476,19 @@ class TICC1101(object):
         else:
             raise Exception("Packet mode NOT SUPPORTED!")
 
-        regVal[6:] = val
+        regVal[6:] = list(val)
         regVal = int("".join(regVal), 2)
         self._writeSingleByte(self.PKTCTRL0, regVal)
 
+    # Sets the filtering address used for packet filtration
     def setFilteringAddress(self, address=0x0E):
         self._writeSingleByte(self.ADDR, address)
 
+    # Sets the address check configuration
+    # DISABLED: No address checking
+    # ENABLE_NO_BROADCAST: Address check, no broadcast
+    # ENABLE_00_BROADCAST: Address check and 0 broadcast
+    # ENABLE_00_255_BROADCAST: Address check and 0 and 255 broadcast
     def configureAddressFiltering(self, value="DISABLED"):
         regVal = list(self.getRegisterConfiguration("PKTCTRL1", False))
 
@@ -491,7 +507,8 @@ class TICC1101(object):
         else:
             raise Exception("Address filtering configuration NOT SUPPORTED!")
 
-        regVal[6:] = val
+        # Set ADR_CHK (1:0)
+        regVal[6:] = list(val)
 
         regVal = int("".join(regVal), 2)
         self._writeSingleByte(self.PKTCTRL1, regVal)

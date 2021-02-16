@@ -691,9 +691,13 @@ class TICC1101(object):
         self._writeSingleByte(self.PKTCTRL1, regVal)
 
     def sendData(self, dataBytes):
+        self._flushTXFifo()
         self._setRXState()
         marcstate = self._getMRStateMachineState()
         dataToSend = []
+
+        if len(dataBytes) == 0:
+            raise ValueError("Must include payload")
 
         while ((marcstate & 0x1F) != 0x0D):
             if self.debug:
@@ -705,19 +709,12 @@ class TICC1101(object):
 
             marcstate = self._getMRStateMachineState()
 
-        if len(dataBytes) == 0:
-            if self.debug:
-                print("sendData | No data to send")
-            return False
-
         sending_mode = self.getPacketConfigurationMode()
         data_len = len(dataBytes)
 
         if sending_mode == "PKT_LEN_FIXED":
             if data_len > self._readSingleByte(self.PKTLEN):
-                if self.debug:
-                    print("Len of data exceeds the configured packet len")
-                return False
+                raise ValueError("Payload exceeds PKTLEN.")
 
             if self.getRegisterConfiguration("PKTCTRL1", False)[6:] != "00":
                 dataToSend.append(self._readSingleByte(self.ADDR))
@@ -743,24 +740,56 @@ class TICC1101(object):
                 print("Length of the packet is: %d".format(data_len))
 
         elif sending_mode == "PKT_LEN_INFINITE":
-            # ToDo
-            raise Exception("MODE NOT IMPLEMENTED")
+            if self.getRegisterConfiguration("PKTCTRL1", False)[6:] != "00":
+                payload.append(self._readSingleByte(self.ADDR))
 
-        print("{}".format(dataToSend))
-        self._writeBurst(self.TXFIFO, dataToSend)
-        self._usDelay(2000)
-        self._setTXState()
-        marcstate = self._getMRStateMachineState()
+            data_len = data_len + len(payload) + 2
+            data_len_fixed = data_len % 256
+            data_len_inf = data_len - data_len_fixed
 
-        if marcstate not in [0x13, 0x14, 0x15]:  # RX, RX_END, RX_RST
-            self.sidle()
+            dataToSend.append(data_len_fixed)
+            data_len_inf_app = int(data_len_inf / 256)
+
+            dataToSend.append(data_len_inf_app)
+            # extend the list with the data to send
+            dataToSend.extend(bytes)
+
+            data_len = len(dataToSend)
+
+            if data_len > 255:
+                state = self._writeBurstTX(self.TXFIFO, payload[0 : (data_len - data_len_fixed)])
+                if not state:
+                    self._flushTXFifo()
+                    self.sidle()
+                    return False
+
+                remaining_bytes = self._readSingleByte(self.TXBYTES) & 0x7F
+                while remaining_bytes != 0:
+                    self._usDelay(1000)
+                    remaining_bytes = self._readSingleByte(self.TXBYTES) & 0x7F
+                    if self.debug:
+                        print("Waiting inf until all bytes are transmited, remaining bytes: {:d}".format(remaining_bytes))
+
+                dataToSend = dataToSend[data_len - data_len_fixed :]
+
+                self._writeSingleByte(self.PKTLEN, len(dataToSend))
+                self.setPacketMode("PKT_LEN_FIXED")
+
+            else:
+                self._writeSingleByte(self.PKTLEN, len(dataToSend))
+                self.setPacketMode("PKT_LEN_FIXED")
+
+
+
+
+
+        if self.debug:
+            print(dataToSend)
+        state = self._writeBurstTX(self.TXFIFO, dataToSend)
+
+        if not state:
             self._flushTXFifo()
-            self._setRXState()
-
-            if self.debug:
-                print("senData | FAIL")
-                print("sendData | MARCSTATE: %x".format(self._readSingleByte(self.MARCSTATE)))
-
+            self.sidle()
             return False
 
         remaining_bytes = self._readSingleByte(self.TXBYTES) & 0x7F
@@ -768,7 +797,7 @@ class TICC1101(object):
             self._usDelay(1000)
             remaining_bytes = self._readSingleByte(self.TXBYTES) & 0x7F
             if self.debug:
-                print("Waiting until all bytes are transmited, remaining bytes: %d".format(remaining_bytes))
+                print("Waiting until all bytes are transmited, remaining bytes: {:d}".format(remaining_bytes))
 
 
         if (self._readSingleByte(self.TXBYTES) & 0x7F) == 0:
@@ -776,7 +805,7 @@ class TICC1101(object):
                 print("Packet sent!")
 
             return True
-
+            
         else:
             if self.debug:
                 print("{}".format(self._readSingleByte(self.TXBYTES) & 0x7F))

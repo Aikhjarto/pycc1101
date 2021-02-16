@@ -217,12 +217,8 @@ class TICC1101(object):
 
     def sidle(self):
         self._strobe(self.SIDLE)
-
-        while (self._readSingleByte(self.MARCSTATE) != 0x01):
+        while self._readSingleByte(self.MARCSTATE) != self.FSM_IDLE:
             self._usDelay(100)
-
-        self._strobe(self.SFTX)
-        self._usDelay(100)
 
     def powerDown(self):
         self.sidle()

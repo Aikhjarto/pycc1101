@@ -136,24 +136,24 @@ class TICC1101(object):
     FSM_RXTX_SWITCH = const(0x15)
     FSM_TXFIFO_UNDERFLOW = const(0x16)
 
-    def __init__(self, bus=0, device=0, speed=50000, debug=True):
-        try:
-            self.debug = debug
-            self._spi = spidev.SpiDev()
-            self._spi.open(bus, device)
-            self._spi.max_speed_hz = speed
-
-        except Exception as e:
-            print(e)
+    def __init__(self, spi, pCS, pGDO0, pGDO2, debug=True):
+        self._spi = spi
+        self._pCS = pCS
+        self._pGDO0 = pGDO0
+        self._pGDO2 = pGDO2
 
     def _usDelay(self, useconds):
         time.sleep(useconds / 1000000.0)
 
     def _writeSingleByte(self, address, byte_data):
-        return self._spi.xfer([self.WRITE_SINGLE_BYTE | address, byte_data])
+        buffer = bytearray(2)
+        self._spi.write_readinto(bytearray([self.WRITE_SINGLE_BYTE | address, byte_data]), buffer)
+        return buffer
 
     def _readSingleByte(self, address):
-        return self._spi.xfer([self.READ_SINGLE_BYTE | address, 0x00])[1]
+        buffer = bytearray(2)
+        self._spi.write_readinto(bytearray([self.READ_SINGLE_BYTE | address, 0x00]), buffer)
+        return buffer[1]
 
     def _readBurst(self, start_address, length):
         buff = []

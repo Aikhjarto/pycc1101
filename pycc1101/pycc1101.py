@@ -742,9 +742,9 @@ class TICC1101(object):
 
         elif sending_mode == "PKT_LEN_INFINITE":
             if self.getRegisterConfiguration("PKTCTRL1", False)[6:] != "00":
-                payload.append(self._readSingleByte(self.ADDR))
+                dataToSend.append(self._readSingleByte(self.ADDR))
 
-            data_len = data_len + len(payload) + 2
+            data_len = data_len + len(dataToSend) + 2
             data_len_fixed = data_len % 256
             data_len_inf = data_len - data_len_fixed
 
@@ -758,7 +758,7 @@ class TICC1101(object):
             data_len = len(dataToSend)
 
             if data_len > 255:
-                state = self._writeBurstTX(self.TXFIFO, payload[0 : (data_len - data_len_fixed)])
+                state = self._writeBurstTX(self.TXFIFO, dataToSend[0 : (data_len - data_len_fixed)])
                 if not state:
                     self._flushTXFifo()
                     self.sidle()
@@ -818,7 +818,7 @@ class TICC1101(object):
         self._setRXState()
         self._usDelay(1000)
         rx_bytes_val = self._readSingleByte(self.RXBYTES)  # get the number of bytes in the fifo
-	data = []
+        data = []
 
         #if rx_bytes_val has something and Underflow bit is not 1
         if (rx_bytes_val & 0x7F and not (rx_bytes_val & 0x80)):

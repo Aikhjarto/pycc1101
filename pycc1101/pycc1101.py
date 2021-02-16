@@ -141,6 +141,7 @@ class TICC1101(object):
         self._pCS = pCS
         self._pGDO0 = pGDO0
         self._pGDO2 = pGDO2
+        self.debug = debug
 
     def _usDelay(self, useconds):
         time.sleep(useconds / 1000000.0)
@@ -779,10 +780,6 @@ class TICC1101(object):
                 self._writeSingleByte(self.PKTLEN, len(dataToSend))
                 self.setPacketMode("PKT_LEN_FIXED")
 
-
-
-
-
         if self.debug:
             print(dataToSend)
         state = self._writeBurstTX(self.TXFIFO, dataToSend)
@@ -805,7 +802,7 @@ class TICC1101(object):
                 print("Packet sent!")
 
             return True
-            
+
         else:
             if self.debug:
                 print("{}".format(self._readSingleByte(self.TXBYTES) & 0x7F))

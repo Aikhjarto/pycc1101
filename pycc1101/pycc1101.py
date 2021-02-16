@@ -244,11 +244,13 @@ class TICC1101(object):
     def setChannel(self, channel=0x00):
         self._writeSingleByte(self.CHANNR, channel)
 
-    def setSyncWord(self, sync_word="FAFA"):
+    # Sets the sync-word - automatically added at the start
+    # of the packet by the CC1101 transceiver
+    def setSyncWord(self, sync_word="D391"):
         assert len(sync_word) == 4
 
-        self._writeSingleByte(self.SYNC1, int(sync_word[:2], 16))
-        self._writeSingleByte(self.SYNC0, int(sync_word[2:], 16))
+        self._writeSingleByte(self.SYNC1, int(sync_word[:2], 16))  # High Byte
+        self._writeSingleByte(self.SYNC0, int(sync_word[2:], 16))  # Low Byte
 
     def getRegisterConfiguration(self, register, showConfig=True):
         def toBits(byte):

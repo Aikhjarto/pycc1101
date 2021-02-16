@@ -1,4 +1,5 @@
 import time
+import math
 try:
     from micropython import const
 except ImportError:  # probably not running Micropython
@@ -135,6 +136,7 @@ class TICC1101(object):
     FSM_TX_END = const(0x14)
     FSM_RXTX_SWITCH = const(0x15)
     FSM_TXFIFO_UNDERFLOW = const(0x16)
+    REFCLK = const(26e6)
 
     def __init__(self, spi, pCS, pGDO0, pGDO2, debug=True):
         self._spi = spi
@@ -917,3 +919,56 @@ class TICC1101(object):
             # if self.debug:
             # print("RX-Bytes-Error: ", rx_bytes_val)
             return False
+
+    #Sets the baudrate (datasheet p. 35)
+    def setBaud(self, baudrate):
+        DRATE_E = int(math.log2((baudrate*(2**20))/self.REFCLK))
+        DRATE_M = int((baudrate*(2**28))/(self.REFCLK*(2**DRATE_E)))-256
+        if DRATE_M == 256:
+            DRATE_M = 0
+            DRATE_E += 1
+        mdmcfg4_tmp = self._readSingleByte(self.MDMCFG4)
+        self._writeSingleByte(self.MDMCFG4, (mdmcfg4_tmp & 0xF0) | DRATE_E)  # lower 4 bits for DRATE
+        self._writeSingleByte(self.MDMCFG3, DRATE_M)  # all bits for DRATE
+    
+    #Turn data whitening on / off (datasheet p. 74)
+    def enWhiteData(self, enable):
+        pktctrl0_tmp = self._readSingleByte(self.PKTCTRL0)
+        if enable:
+            self._writeSingleByte(self.PKTCTRL0, (pktctrl0_tmp) | 1<<6)
+        else:
+            self._writeSingleByte(self.PKTCTRL0, (pktctrl0_tmp & (~(1<<6))))
+            
+    #CRC calculation in TX and CRC check in RX (datasheet p. 74)
+    def enCRC(self, enable):
+        pktctrl0_tmp = self._readSingleByte(self.PKTCTRL0)
+        if enable:
+            self._writeSingleByte(self.PKTCTRL0, (pktctrl0_tmp) | 1<<2)
+        else:
+            self._writeSingleByte(self.PKTCTRL0, (pktctrl0_tmp & (~(1<<2))))
+
+    #Enable Forward Error Correction (FEC) with interleaving for packet payload (datasheet p. 78)
+    def enFEC(self, enable):
+        mdmcfg1_tmp = self._readSingleByte(self.MDMCFG1)
+        if enable:
+            self._writeSingleByte(self.MDMCFG1, (mdmcfg1_tmp) | 1<<7)
+        else:
+            self._writeSingleByte(self.MDMCFG1, (mdmcfg1_tmp & (~(1<<7))))
+    
+    #Indicates the packet length when fixed packet length mode is enabled.
+    #If variable packet length mode is used, this value indicates the
+    #maximum packet length allowed
+    def setPktLen(self, length):
+        if length < 0xFF and length > 0:
+            self._writeSingleByte(self.PKTLEN, (length & 0xFF))
+        else:
+            raise Exception("Invalid 0<PKTLEN<256")
+            
+    #Modem Deviation Setting
+    def setDevtn(self):
+        devtn_tmp = self._readSingleByte(self.DEVIATN)
+        e = 0b101
+        m = 0b000
+        devtn_tmp = (devtn_tmp & 0b10001111) | e<<4        
+        devtn_tmp = (devtn_tmp & 0b11111000) | m
+        self._writeSingleByte(self.DEVIATN, devtn_tmp)

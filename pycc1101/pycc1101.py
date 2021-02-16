@@ -145,13 +145,19 @@ class TICC1101(object):
         self._pGDO2 = pGDO2
         self.debug = debug
 
-    def _usDelay(self, useconds):
+    @staticmethod
+    def _usDelay(useconds):
         time.sleep(useconds / 1000000.0)
+
+    @staticmethod
+    def toBits(byte):
+        byte = bin(byte)[2:]
+        return "0" * (8 - len(byte)) + byte
 
     def _write_readinto(self, data_to_write, buf):
         self._pCS.off()
         self._spi.write_readinto(data_to_write, buf)
-        self._pCS.on()        
+        self._pCS.on()
 
     def _writeSingleByte(self, address, byte_data):
         buffer = bytearray(2)
@@ -180,12 +186,7 @@ class TICC1101(object):
 
         if self.debug:
             for dat in buf:
-
-                def toBits(byte):
-                    byte = bin(byte)[2:]
-                    return "0" * (8 - len(byte)) + byte
-
-                byte = toBits(data)
+                byte = self.toBits(dat)
                 print(
                     "CHIP_RDY: ",
                     str(byte[0]),
@@ -221,7 +222,7 @@ class TICC1101(object):
             if self.debug:
                 print("sendBurstRX | Waiting until the sync word has been sent")
 
-        self._pCS.off()  #
+        self._pCS.off()
 
         if self._pGDO2.value() == 1:
             for d in bytelist:
@@ -240,12 +241,7 @@ class TICC1101(object):
                     return False
 
                 if self.debug:
-
-                    def toBits(byte):
-                        byte = bin(byte)[2:]
-                        return "0" * (8 - len(byte)) + byte
-
-                    byte = toBits(buf[0])
+                    byte = self.toBits(buf[0])
                     print("Send data: ", d)
                     print(
                         "CHIP_RDY: ",
@@ -265,7 +261,7 @@ class TICC1101(object):
 
         buff.append(0xFF)
 
-        for x in range(length):
+        for _ in range(length):
             buff.append(0)
 
         # set up GDO0
@@ -298,12 +294,6 @@ class TICC1101(object):
                 self._spi.write_readinto(bytearray([d]), data)
                 ret.append(int(data[0]))
                 if self.debug:
-
-                    # def toBits(byte):
-                    #     byte = bin(byte)[2:]
-                    #     return "0" * (8 - len(byte)) + byte
-
-                    # byte = toBits(data[0])
                     print(
                         "Data: ",
                         data[0],
@@ -365,7 +355,7 @@ class TICC1101(object):
 
         assert part_number == 0x00, "Self test: Wrong part number"
         assert component_version == 0x14, "Self test: Wrong component version"
-          
+
         self._writeSingleByte(self.IOCFG0, 0x2f)  # set to low
         assert self._pGDO0.value() == 0, "Self test: GDO0 should be low"
         self._writeSingleByte(self.IOCFG0, 0x2f | 1<<6)  # set to high
@@ -379,18 +369,18 @@ class TICC1101(object):
         assert self._pGDO2.value() == 1, "GDO2 should be high"
         self._writeSingleByte(self.IOCFG2, 0x2b)  # osc stable
         assert self._pGDO2.value() == 1, "Self test: GDO2 returns 'Osc unstable'"
-        
+
         if self.debug:
             print("Self test OK")
 
 
-    def sidle(self):
+    def _sidle(self):
         self._strobe(self.SIDLE)
         while self._readSingleByte(self.MARCSTATE) != self.FSM_IDLE:
             self._usDelay(100)
 
     def powerDown(self):
-        self.sidle()
+        self._sidle()
         self._strobe(self.SPWD)
 
     def setCarrierFrequency(self, freq=433):
@@ -502,7 +492,7 @@ class TICC1101(object):
 
         return bits
 
-    def setDefaultValues(self, version=1):
+    def setDefaultValues(self):
 
         # Default values extracted from Smart RF Studio 7
 
@@ -617,7 +607,7 @@ class TICC1101(object):
         # The &0x1F works as a mask due to the fact
         # that the MARCSTATE register only uses the
         # first 5 bits
-        return (self._readSingleByte(self.MARCSTATE) & 0x1F)
+        return self._readSingleByte(self.MARCSTATE) & 0x1F
 
     # Returns the packet configuration
     def getPacketConfigurationMode(self):
@@ -702,9 +692,9 @@ class TICC1101(object):
         if len(dataBytes) == 0:
             raise ValueError("Must include payload")
 
-        while ((marcstate & 0x1F) != 0x0D):
+        while (marcstate & 0x1F) != 0x0D:
             if self.debug:
-                print("marcstate = %x".format(marcstate))
+                print("marcstate = {:x}".format(marcstate))
                 print("waiting for marcstate == 0x0D")
 
             if marcstate == 0x11:
@@ -727,7 +717,7 @@ class TICC1101(object):
 
             if self.debug:
                 print("Sending a fixed len packet")
-                print("data len = %d".format((data_len)))
+                print("data len = {:d}".format((data_len)))
 
         elif sending_mode == "PKT_LEN_VARIABLE":
             dataToSend.append(data_len)
@@ -740,7 +730,7 @@ class TICC1101(object):
 
             if self.debug:
                 print("Sending a variable len packet")
-                print("Length of the packet is: %d".format(data_len))
+                print("Length of the packet is: {:d}".format(data_len))
 
         elif sending_mode == "PKT_LEN_INFINITE":
             if self.getRegisterConfiguration("PKTCTRL1", False)[6:] != "00":
@@ -763,7 +753,7 @@ class TICC1101(object):
                 state = self._writeBurstTX(self.TXFIFO, dataToSend[0 : (data_len - data_len_fixed)])
                 if not state:
                     self._flushTXFifo()
-                    self.sidle()
+                    self._sidle()
                     return False
 
                 remaining_bytes = self._readSingleByte(self.TXBYTES) & 0x7F
@@ -771,7 +761,7 @@ class TICC1101(object):
                     self._usDelay(1000)
                     remaining_bytes = self._readSingleByte(self.TXBYTES) & 0x7F
                     if self.debug:
-                        print("Waiting inf until all bytes are transmited, remaining bytes: {:d}".format(remaining_bytes))
+                        print("Waiting inf until all bytes are transmitted, remaining bytes: {:d}".format(remaining_bytes))
 
                 dataToSend = dataToSend[data_len - data_len_fixed :]
 
@@ -788,7 +778,7 @@ class TICC1101(object):
 
         if not state:
             self._flushTXFifo()
-            self.sidle()
+            self._sidle()
             return False
 
         remaining_bytes = self._readSingleByte(self.TXBYTES) & 0x7F
@@ -802,19 +792,16 @@ class TICC1101(object):
         if (self._readSingleByte(self.TXBYTES) & 0x7F) == 0:
             if self.debug:
                 print("Packet sent!")
-
             return True
 
-        else:
-            if self.debug:
-                print("{}".format(self._readSingleByte(self.TXBYTES) & 0x7F))
-                print("sendData | MARCSTATE: %x".format(self._getMRStateMachineState()))
-                self.sidle()
-                self._flushTXFifo()
-                time.sleep(5)
-                self._setRXState()
-
-            return False
+        if self.debug:
+            print("{}".format(self._readSingleByte(self.TXBYTES) & 0x7F))
+            print("sendData | MARCSTATE: {:x}".format(self._getMRStateMachineState()))
+            self._sidle()
+            self._flushTXFifo()
+            time.sleep(5)
+            self._setRXState()
+        return False
 
     def recvData(self):
         self._setRXState()
@@ -823,7 +810,7 @@ class TICC1101(object):
         data = []
 
         #if rx_bytes_val has something and Underflow bit is not 1
-        if (rx_bytes_val & 0x7F and not (rx_bytes_val & 0x80)):
+        if rx_bytes_val & 0x7F and not (rx_bytes_val & 0x80):
             sending_mode = self.getPacketConfigurationMode()
             valPktCtrl1 = self.getRegisterConfiguration("PKTCTRL1", False)
             if sending_mode == "PKT_LEN_FIXED":
@@ -843,7 +830,7 @@ class TICC1101(object):
                     if self.debug:
                         print("Len of data exceeds the configured maximum packet len")
                     self._flushRXFifo()
-                    self.sidle()
+                    self._sidle()
                     return False
 
                 if self.debug:
@@ -884,14 +871,14 @@ class TICC1101(object):
                     data2 = self._readBurstRX(self.RXFIFO, dataLen - 3)[1:]
                     if not data2:
                         self._flushRXFifo()
-                        self.sidle()
+                        self._sidle()
                         if self.debug:
                             print("RX-FIFO-ERROR")
                         return False
                     data.extend(data2)
                 else:
                     self._flushRXFifo()
-                    self.sidle()
+                    self._sidle()
                     if self.debug:
                         print("RX-FIFO-ERROR")
                     return False
@@ -915,10 +902,9 @@ class TICC1101(object):
                 print("Data: " + str(data))
             self._flushRXFifo()
             return data
-        else:
-            # if self.debug:
-            # print("RX-Bytes-Error: ", rx_bytes_val)
-            return False
+        # if self.debug:
+        # print("RX-Bytes-Error: ", rx_bytes_val)
+        return False
 
     #Sets the baudrate (datasheet p. 35)
     def setBaud(self, baudrate):
@@ -930,7 +916,7 @@ class TICC1101(object):
         mdmcfg4_tmp = self._readSingleByte(self.MDMCFG4)
         self._writeSingleByte(self.MDMCFG4, (mdmcfg4_tmp & 0xF0) | DRATE_E)  # lower 4 bits for DRATE
         self._writeSingleByte(self.MDMCFG3, DRATE_M)  # all bits for DRATE
-    
+
     #Turn data whitening on / off (datasheet p. 74)
     def enWhiteData(self, enable):
         pktctrl0_tmp = self._readSingleByte(self.PKTCTRL0)
@@ -938,7 +924,7 @@ class TICC1101(object):
             self._writeSingleByte(self.PKTCTRL0, (pktctrl0_tmp) | 1<<6)
         else:
             self._writeSingleByte(self.PKTCTRL0, (pktctrl0_tmp & (~(1<<6))))
-            
+
     #CRC calculation in TX and CRC check in RX (datasheet p. 74)
     def enCRC(self, enable):
         pktctrl0_tmp = self._readSingleByte(self.PKTCTRL0)
@@ -954,21 +940,21 @@ class TICC1101(object):
             self._writeSingleByte(self.MDMCFG1, (mdmcfg1_tmp) | 1<<7)
         else:
             self._writeSingleByte(self.MDMCFG1, (mdmcfg1_tmp & (~(1<<7))))
-    
+
     #Indicates the packet length when fixed packet length mode is enabled.
     #If variable packet length mode is used, this value indicates the
     #maximum packet length allowed
     def setPktLen(self, length):
-        if length < 0xFF and length > 0:
+        if 0 < length < 0xFF:
             self._writeSingleByte(self.PKTLEN, (length & 0xFF))
         else:
             raise Exception("Invalid 0<PKTLEN<256")
-            
+
     #Modem Deviation Setting
     def setDevtn(self):
         devtn_tmp = self._readSingleByte(self.DEVIATN)
         e = 0b101
         m = 0b000
-        devtn_tmp = (devtn_tmp & 0b10001111) | e<<4        
+        devtn_tmp = (devtn_tmp & 0b10001111) | e<<4
         devtn_tmp = (devtn_tmp & 0b11111000) | m
         self._writeSingleByte(self.DEVIATN, devtn_tmp)

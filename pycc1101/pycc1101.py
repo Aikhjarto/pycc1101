@@ -617,13 +617,13 @@ class TICC1101(object):
         if pktCtrlVal[6:] == "00": # Packet len is fixed
             return "PKT_LEN_FIXED"
 
-        elif pktCtrlVal[6:] == "01": # Packet len is variable
+        if pktCtrlVal[6:] == "01": # Packet len is variable
             return "PKT_LEN_VARIABLE"
 
-        elif pktCtrlVal[6:] == "10":  # Infinite packet len mode
+        if pktCtrlVal[6:] == "10":  # Infinite packet len mode
             return "PKT_LEN_INFINITE"
-        else:
-            return "ERROR_PKT_LEN"
+
+        return "ERROR_PKT_LEN"
 
     # Sets the packet configuration
     # PKT_LEN_FIXED: Fixed packet length mode.

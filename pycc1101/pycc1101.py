@@ -256,7 +256,7 @@ class TICC1101(object):
         return True
 
     # writes burst signal, to send data, and checks if the FIFO is ready for new data
-    def _readBurstRX(self, length):
+    def _readBurstRX(self, addr, length):
         buff = []
         ret = []
 
@@ -580,7 +580,7 @@ class TICC1101(object):
         else:
             raise Exception("Modulation type NOT SUPPORTED!")
 
-        regVal[1:4] = modVal
+        regVal[1:4] = list(modVal)
 
         regVal = int("".join(regVal), 2)
         self._writeSingleByte(self.MDMCFG2, regVal)

@@ -218,13 +218,14 @@ class TICC1101(object):
             marcstate = self._getMRStateMachineState()
             print("Marcstate: {:d} ".format(marcstate))
 
-        while self._pGDO2.value() == 0:  # wait until the sync word has been sent
-            if self.debug:
-                print("sendBurstRX | Waiting until the sync word has been sent")
+        # while self._pGDO2.value() == 0:  # wait until the sync word has been sent
+        #     if self.debug:
+        #         print("sendBurstRX | Waiting until the sync word has been sent")
 
         self._pCS.off()
 
-        if self._pGDO2.value() == 1:
+        # if self._pGDO2.value() == 1:
+        if True:
             for d in bytelist:
                 while self._pGDO0.value() == 1:
                     if self.debug:

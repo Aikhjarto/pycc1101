@@ -952,10 +952,25 @@ class TICC1101(object):
             raise Exception("Invalid 0<PKTLEN<256")
 
     #Modem Deviation Setting
-    def setDevtn(self):
+    def _setDevtn(self, expon, mant):
         devtn_tmp = self._readSingleByte(self.DEVIATN)
-        e = 0b101
-        m = 0b000
-        devtn_tmp = (devtn_tmp & 0b10001111) | e<<4
-        devtn_tmp = (devtn_tmp & 0b11111000) | m
+        devtn_tmp = (devtn_tmp & 0b10001111) | expon<<4
+        devtn_tmp = (devtn_tmp & 0b11111000) | mant
         self._writeSingleByte(self.DEVIATN, devtn_tmp)
+
+    def setDevtnLarge(self):
+        e = 0b101
+        m = 0b111
+        #deviation = (self.REFCLK/2**17)*(8+m)*2**e = 95214.84375
+        self._setDevtn(e,m)
+
+    def setDevtnDefault(self):
+        e = 0b100
+        m = 0b111
+        #deviation = (self.REFCLK/2**17)*(8+m)*2**e = 47607.421875
+        self._setDevtn(e,m)
+
+    def setFreqOffset(self, offset):
+        if not -129 < offset < 128:
+            raise ValueError("Offset needs to be between including -128 and +127")
+        self._writeSingleByte(self.FSCTRL0, offset)

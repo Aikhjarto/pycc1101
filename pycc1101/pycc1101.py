@@ -5,6 +5,11 @@ try:
 except ImportError:  # probably not running Micropython
     const = lambda x: x
 
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
 class TICC1101(object):
     WRITE_SINGLE_BYTE = const(0x00)
     WRITE_BURST = const(0x40)
@@ -224,16 +229,17 @@ class TICC1101(object):
 
         self._pCS.off()
 
+        d_chunks = chunks(bytelist, 64)  # 64...FIFO len in CC1101
         # if self._pGDO2.value() == 1:
         if True:
-            for d in bytelist:
+            for d_chunk in d_chunks:
                 while self._pGDO0.value() == 1:
                     if self.debug:
                         print("Waiting to send new data to the FIFO!")
                         self._usDelay(100)
 
-                buf = bytearray(1)
-                self._spi.write_readinto(bytearray([d]), buf)  # write the data to the TX-FIFO
+                buf = bytearray(len(d_chunk))
+                self._spi.write_readinto(d_chunk, buf)  # write the data to the TX-FIFO
 
                 if buf[0] & 0x70 == 0x70:  # check if there is an underflow
                     if self.debug:
@@ -243,7 +249,7 @@ class TICC1101(object):
 
                 if self.debug:
                     byte = self.toBits(buf[0])
-                    print("Send data: ", d)
+                    print("Send data: ", d_chunk)
                     print(
                         "CHIP_RDY: ",
                         str(byte[0]),

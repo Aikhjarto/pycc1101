@@ -614,6 +614,12 @@ class TICC1101(object):
     def getRSSI(self):
         return self._readSingleByte(self.RSSI)
 
+    def getRSSIdBm(self):
+        rssi = self.getRSSI()
+        if rssi>=128:
+            return (rssi-256)/2-74
+        return rssi/2 - 74
+
     def _getMRStateMachineState(self):
         # The &0x1F works as a mask due to the fact
         # that the MARCSTATE register only uses the

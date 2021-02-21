@@ -813,7 +813,7 @@ class TICC1101(object):
 
     def recvData(self):
         self._setRXState()
-        self._usDelay(1000)
+        self._usDelay(100)
         rx_bytes_val = self._readSingleByte(self.RXBYTES)  # get the number of bytes in the fifo
         data = []
 

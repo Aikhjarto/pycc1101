@@ -325,14 +325,15 @@ class TICC1101(object):
                         pass
 
                     self._spi.write_readinto(bytearray([d]), data)
-                    print(
-                        "Data: ",
-                        data[0],
-                        "GPO0 = ",
-                        self._pGDO0.value(),
-                        "GPO2 = ",
-                        self._pGDO2.value(),
-                    )
+                    if self.debug:
+                        print(
+                            "Data: ",
+                            data[0],
+                            "GPO0 = ",
+                            self._pGDO0.value(),
+                            "GPO2 = ",
+                            self._pGDO2.value(),
+                        )
                     ret.append(data[0])
                     remDat -= 1
 

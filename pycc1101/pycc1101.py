@@ -981,3 +981,7 @@ class TICC1101(object):
         if not -129 < offset < 128:
             raise ValueError("Offset needs to be between including -128 and +127")
         self._writeSingleByte(self.FSCTRL0, offset)
+
+    def setPreamble(self, preamble):
+        mdmcfg1_tmp = self._readSingleByte(self.MDMCFG1)
+        self._writeSingleByte(self.MDMCFG1, (mdmcfg1_tmp & 0b10001111) | preamble<<4)

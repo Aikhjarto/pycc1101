@@ -149,6 +149,7 @@ class TICC1101(object):
         self._pGDO0 = pGDO0
         self._pGDO2 = pGDO2
         self.debug = debug
+        self.freq = 433
 
     @staticmethod
     def _usDelay(useconds):
@@ -397,10 +398,12 @@ class TICC1101(object):
             self._writeSingleByte(self.FREQ2, 0x10)
             self._writeSingleByte(self.FREQ1, 0xA7)
             self._writeSingleByte(self.FREQ0, 0x62)
+            self.freq = 433
         elif freq == 868:
             self._writeSingleByte(self.FREQ2, 0x21)
             self._writeSingleByte(self.FREQ1, 0x62)
             self._writeSingleByte(self.FREQ0, 0x76)
+            self.freq = 868
         else:
             raise Exception("Only 433MHz and 868MHz are currently supported")
 
@@ -985,3 +988,16 @@ class TICC1101(object):
     def setPreamble(self, preamble):
         mdmcfg1_tmp = self._readSingleByte(self.MDMCFG1)
         self._writeSingleByte(self.MDMCFG1, (mdmcfg1_tmp & 0b10001111) | preamble<<4)
+
+    def setTXPower(self, paTableIdx):
+        #Patable index: -30   -20   -15   -10     0     5     7    10 dBm
+        if self.freq == 433:
+            patable = [0x12, 0x0E, 0x1D, 0x34, 0x60, 0x84, 0xC8, 0xC0]
+        elif self.freq == 868:
+            patable = [0x03, 0x0F, 0x1E, 0x27, 0x50, 0x81, 0xCB, 0xC2]
+        else:
+            raise ValueError("No PA-table for this frequency. Only 433MHz and 868MHz are currently supported")
+        self._writeSingleByte(self.PATABLE, patable[paTableIdx])
+        frend0_tmp = self._readSingleByte(self.FREND0)
+        frend0_tmp &= 0b11111000
+        self._writeSingleByte(self.FREND0, frend0_tmp)

@@ -234,13 +234,14 @@ class TICC1101(object):
         # if self._pGDO2.value() == 1:
         if True:
             for d_chunk in d_chunks:
+#             for b in bytelist:
                 while self._pGDO0.value() == 1:
                     if self.debug:
                         print("Waiting to send new data to the FIFO!")
                         self._usDelay(100)
 
                 buf = bytearray(len(d_chunk))
-                self._spi.write_readinto(d_chunk, buf)  # write the data to the TX-FIFO
+                self._spi.write_readinto(bytearray(d_chunk), buf)  # write the data to the TX-FIFO
 
                 if buf[0] & 0x70 == 0x70:  # check if there is an underflow
                     if self.debug:

@@ -54,7 +54,7 @@ CC1101_433.configureAddressFiltering("DISABLED")
 # CC1101_433.configureAddressFiltering("ENABLED_NO_BROADCAST")
 CC1101_433.setChannel(0)
 CC1101_433.setPacketMode("PKT_LEN_FIXED")
-CC1101_433.setBaud(150000)
+CC1101_433.setBaud(1000)
 CC1101_433.enWhiteData(False)
 CC1101_433.enFEC(False)
 CC1101_433.enCRC(False)
@@ -65,13 +65,18 @@ CC1101_433.setModulation("2-FSK")
 # CC1101_433.setModulation('MSK')
 CC1101_433.setDevtnDefault()
 # CC1101_433.setDevtnLarge()
-CC1101_433.setPktLen(128)
+CC1101_433.setPktLen(1)
 CC1101_433.setSyncWord("0F0F")  # 0xD391
 
 data = [0xA5]
 
 # TX - part
-for j in range(1000):
+j = 0
+# for j in range(1000):
+while True:
+    j += 1
     if not(CC1101_433.sendData(data)):
         print("send: {:04d}, {}".format(j, False))
-    #time.sleep(0.08)
+    else:
+        print("send: {:04d}, {}".format(j, True))
+    time.sleep(0.08)

@@ -283,8 +283,19 @@ class TICC1101(object):
         # de-asserts at the end of the packet
         self._writeSingleByte(self.IOCFG2, 0x06)
 
-        while self._pGDO2.value() == 0:  # wait until the sync word has been received
-            pass
+        if self.debug:
+            print('Waiting for sync word')
+            
+        while self._pGDO2.value() == 0:  # wait until the sync word has been received        
+            marcstate = self._getMRStateMachineState()
+            if marcstate != self.FSM_RX:            
+                if self.debug:
+                    print("Marcstate in _readBurstRX: {:d} ".format(marcstate))
+            if marcstate == self.FSM_IDLE:
+                self._setRXState()  # go back to RX state
+
+        if self.debug:
+            print('Sync word found!')
 
         if length < 64:  # reveive the complete packet
             numBytes = self._readSingleByte(self.RXBYTES)

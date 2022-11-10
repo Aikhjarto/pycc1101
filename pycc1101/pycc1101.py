@@ -944,6 +944,28 @@ class TICC1101(object):
         self._writeSingleByte(self.MDMCFG4, (mdmcfg4_tmp & 0xF0) | DRATE_E)  # lower 4 bits for DRATE
         self._writeSingleByte(self.MDMCFG3, DRATE_M)  # all bits for DRATE
 
+    def setChannelBW(self, reg_value):
+        mdmcfg4_tmp = self._readSingleByte(self.MDMCFG4)
+        mdmcfg4_tmp = (mdmcfg4_tmp & 0xF0) | ((reg_value & 0x0F) << 4)
+        self._writeSingleByte(self.MDMCFG4, mdmcfg4_tmp)
+    
+    def getChannelBW(self):
+        mdmcfg4_tmp = self._readSingleByte(self.MDMCFG4)
+        return (mdmcfg4_tmp >> 4)
+    
+    def setChannelSpacing(self, mantisse, exponent):
+        assert(0<exponent<=3)
+        assert(0<mantisse<=255)
+        mdmcfg1_tmp = self._readSingleByte(self.MDMCFG1)
+        mdmcfg1_tmp = (mdmcfg1_tmp & 0xFC) | exponent
+        self._writeSingleByte(self.MDMCFG0, mantisse)
+        self._writeSingleByte(self.MDMCFG1, mdmcfg1_tmp)
+                
+    def getChannelSpacing(self):
+        mantisse = self._readSingleByte(self.MDMCFG0)
+        exponent = self._readSingleByte(self.MDMCFG1) & 0x03
+        return mantisse, exponent     
+        
     #Turn data whitening on / off (datasheet p. 74)
     def enWhiteData(self, enable):
         pktctrl0_tmp = self._readSingleByte(self.PKTCTRL0)

@@ -578,6 +578,10 @@ class TICC1101(object):
 
         regVal = (regVal & 0xFC) | syncmode
         self._writeSingleByte(self.MDMCFG2, regVal)
+        
+    def getSyncMode(self):
+        regVal = self._readSingleByte(self.MDMCFG2)
+        return regVal & 0x03
 
     def setModulation(self, modulation):
         regVal = list(self.getRegisterConfiguration("MDMCFG2"))

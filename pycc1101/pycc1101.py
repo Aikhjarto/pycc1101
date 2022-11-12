@@ -584,17 +584,17 @@ class TICC1101(object):
         return regVal & 0x03
 
     def setGDO0Cfg(self, reg_val):
-        assert(0<reg_val<=0b00111111)
+        assert(0<=reg_val<=0b00111111)
         tmp = self._readSingleByte(self.IOCFG0)
         self._writeSingleByte(self.IOCFG0, (tmp & 0b11000000) | reg_val)
 
     def setGDO1Cfg(self, reg_val):
-        assert(0<reg_val<=0b00111111)
+        assert(0<=reg_val<=0b00111111)
         tmp = self._readSingleByte(self.IOCFG1)
         self._writeSingleByte(self.IOCFG1, (tmp & 0b11000000) | reg_val)  
 
     def setGDO2Cfg(self, reg_val):
-        assert(0<reg_val<=0b00111111)
+        assert(0<=reg_val<=0b00111111)
         tmp = self._readSingleByte(self.IOCFG2)
         self._writeSingleByte(self.IOCFG2, (tmp & 0b11000000) | reg_val)  
     
@@ -976,8 +976,8 @@ class TICC1101(object):
         return ((256+DRATE_M) * 2**DRATE_E)/2**28*self.REFCLK
 
     def setChannelBandwidth(self, CHANBW_M, CHANBW_E):
-        assert(0<CHANBW_M<=3)
-        assert(0<CHANBW_E<=3)
+        assert(0<=CHANBW_M<=3)
+        assert(0<=CHANBW_E<=3)
         mdmcfg4_tmp = self._readSingleByte(self.MDMCFG4)
         mdmcfg4_tmp = (mdmcfg4_tmp & 0b11001111) | (CHANBW_M << 4)
         mdmcfg4_tmp = (mdmcfg4_tmp & 0b00111111) | (CHANBW_E << 6)
@@ -990,8 +990,8 @@ class TICC1101(object):
         return self.REFCLK/(8*(4+CHANBW_M)*2**CHANBW_E)
     
     def setChannelSpacing(self, CHANSPC_M, CHANSPC_E):
-        assert(0<CHANSPC_E<=3)
-        assert(0<CHANSPC_M<=255)
+        assert(0<=CHANSPC_E<=3)
+        assert(0<=CHANSPC_M<=255)
         mdmcfg1_tmp = self._readSingleByte(self.MDMCFG1)
         mdmcfg1_tmp = (mdmcfg1_tmp & 0xFC) | CHANSPC_E
         self._writeSingleByte(self.MDMCFG0, CHANSPC_M)

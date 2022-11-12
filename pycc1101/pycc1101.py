@@ -419,9 +419,29 @@ class TICC1101(object):
         else:
             raise Exception("Only 433MHz and 868MHz are currently supported")
 
+    def setCarrierFrequencyHz(self, freq):
+        reg_val = int(freq*2**16/self.REFCLK)
+        assert(0<=reg_val<=0xFFFFFF)
+        self._writeSingleByte(self.FREQ2, freq >> 16)
+        self._writeSingleByte(self.FREQ1, (freq & 0xFFFF) >> 8)
+        self._writeSingleByte(self.FREQ0, (freq & 0xFF))
+
+    def getCarrierFrequency(self):
+        return self.REFCLK * (
+            (self._readSingleByte(self.FREQ2) << 16) +
+            (self._readSingleByte(self.FREQ1) << 8) + 
+            (self._readSingleByte(self.FREQ0))
+            ) / 2**16
+
     def setChannel(self, channel=0x00):
         self._writeSingleByte(self.CHANNR, channel)
 
+    def getChannel(self):
+        return self._readSingleByte(self.CHANNR)
+    
+    def getCenterFrequency(self):
+        return self.getCarrierFrequency()+self.getChannelSpacing()*self.getChannel()
+        
     # Sets the sync-word - automatically added at the start
     # of the packet by the CC1101 transceiver
     def setSyncWord(self, sync_word="D391"):

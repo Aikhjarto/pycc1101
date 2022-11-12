@@ -625,6 +625,13 @@ class TICC1101(object):
         self.setGDO0Cfg(0x0D)
         self.setGDO2Cfg(0x0D)
 
+    def setSynchronousTransparentRXMode(self):
+        """From SmartRF Studio: RX data without sanity checks is sent do GPO2 with a clock sent to GPO0"""
+        self._writeSingleByte(self.MDMCFG2, 0x00)
+        self._writeSingleByte(self.PKTCTRL0, 0x12)
+        self.setGDO0Cfg(0x0C)
+        self.setGDO2Cfg(0x0B)
+
     def setModulation(self, modulation):
         regVal = list(self.getRegisterConfiguration("MDMCFG2"))
 

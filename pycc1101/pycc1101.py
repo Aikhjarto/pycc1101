@@ -947,6 +947,11 @@ class TICC1101(object):
         mdmcfg4_tmp = self._readSingleByte(self.MDMCFG4)
         self._writeSingleByte(self.MDMCFG4, (mdmcfg4_tmp & 0xF0) | DRATE_E)  # lower 4 bits for DRATE
         self._writeSingleByte(self.MDMCFG3, DRATE_M)  # all bits for DRATE
+    
+    def getBaud(self):
+        DRATE_E = self._readSingleByte(self.MDMCFG4) & 0b00000111
+        DRATE_M = self._readSingleByte(self.MDMCFG3)
+        return ((256+DRATE_M) * 2**DRATE_E)/2**28*self.REFCLK
 
     def setChannelBandwidth(self, CHANBW_M, CHANBW_E):
         assert(0<CHANBW_M<=3)

@@ -583,6 +583,28 @@ class TICC1101(object):
         regVal = self._readSingleByte(self.MDMCFG2)
         return regVal & 0x03
 
+    def setGDO0Cfg(self, reg_val):
+        assert(0<reg_val<=0b00111111)
+        tmp = self._readSingleByte(self.IOCFG0)
+        self._writeSingleByte(self.IOCFG0, (tmp & 0b11000000) | reg_val)
+
+    def setGDO1Cfg(self, reg_val):
+        assert(0<reg_val<=0b00111111)
+        tmp = self._readSingleByte(self.IOCFG1)
+        self._writeSingleByte(self.IOCFG1, (tmp & 0b11000000) | reg_val)  
+
+    def setGDO2Cfg(self, reg_val):
+        assert(0<reg_val<=0b00111111)
+        tmp = self._readSingleByte(self.IOCFG2)
+        self._writeSingleByte(self.IOCFG2, (tmp & 0b11000000) | reg_val)  
+    
+    def setAsynchronousTransparentRXMode(self):
+        """From SmartRF Studio: RX data without sanity checks is sent do GPO2"""
+        self._writeSingleByte(self.MDMCFG2, 0x00)
+        self._writeSingleByte(self.PKTCTRL0, 0x32)
+        self.setGDO0Cfg(0x0D)
+        self.setGDO2Cfg(0x0D)
+
     def setModulation(self, modulation):
         regVal = list(self.getRegisterConfiguration("MDMCFG2"))
 

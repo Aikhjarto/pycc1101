@@ -70,6 +70,13 @@ class TICC1101(object):
     TEST1 = const(0x2D)  # Various Test Settings
     TEST0 = const(0x2E)  # Various Test Settings
 
+    MODULATION_DICT = {"2-FSK": 0b000,
+                       "GFSK": 0b001,
+                       "ASK": 0b011,
+                       "OOK": 0b011,
+                       "4-FSK": 0b100,
+                       "MSK": 0b111}
+
     # Command Strobe Registers
 
     SRES = const(0x30)  # Reset chip
@@ -633,30 +640,17 @@ class TICC1101(object):
         self.setGDO2Cfg(0x0B)
 
     def setModulation(self, modulation):
-        regVal = list(self.getRegisterConfiguration("MDMCFG2"))
+        modVal = self.MODULATION_DICT[modulation]
+        tmp = self._readSingleByte(self.MDMCFG2) 
+        tmp = (tmp & 0b11111000) | modVal
+        self._writeSingleByte(self.MDMCFG2, tmp)
 
-        if modulation == "2-FSK":
-            modVal = "000"
-
-        elif modulation == "GFSK":
-            modVal = "001"
-
-        elif modulation == "ASK" or modulation == "OOK":
-            modVal = "011"
-
-        elif modulation == "4-FSK":
-            modVal = "100"
-
-        elif modulation == "MSK":
-            modVal = "111"
-
-        else:
-            raise Exception("Modulation type NOT SUPPORTED!")
-
-        regVal[1:4] = list(modVal)
-
-        regVal = int("".join(regVal), 2)
-        self._writeSingleByte(self.MDMCFG2, regVal)
+    def getModulation(self):
+        tmp = self._readSingleByte(self.MDMCFG2)
+        tmp = tmp & 0b00000111
+        for key, val in self.MODULATION_DICT.items():
+            if val == tmp:
+                return key
 
     def _flushRXFifo(self):
         self._strobe(self.SFRX)

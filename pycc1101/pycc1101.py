@@ -883,7 +883,7 @@ class TICC1101(object):
         rx_bytes_val = self._readSingleByte(self.RXBYTES)  # get the number of bytes in the fifo
         data = []
 
-        #if rx_bytes_val has something and Underflow bit is not 1
+        #if rx_bytes_val has something and overflow bit is not 1
         if rx_bytes_val & 0x7F and not (rx_bytes_val & 0x80):
             sending_mode = self.getPacketConfigurationMode()
             valPktCtrl1 = self.getRegisterConfiguration("PKTCTRL1", False)

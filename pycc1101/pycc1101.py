@@ -449,6 +449,16 @@ class TICC1101(object):
     def getCenterFrequency(self):
         return self.getCarrierFrequency()+self.getChannelSpacing()*self.getChannel()
         
+    def setRXAttenuation(self, value):
+        """Attenuation is value*6dB"""
+        assert(0<=value<=3)
+        tmp = self._readSingleByte(self.FIFOTHR)
+        tmp = (tmp & 0b11001111) | (value << 4)
+        self._writeSingleByte(self.FIFOTHR, tmp)
+
+    def getRXAttenuationdB(self):
+        return ((self._readSingleByte(self.FIFOTHR) & 0b00110000) >> 4)*6
+
     # Sets the sync-word - automatically added at the start
     # of the packet by the CC1101 transceiver
     def setSyncWord(self, sync_word="D391"):

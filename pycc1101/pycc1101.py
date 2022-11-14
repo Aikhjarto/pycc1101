@@ -829,7 +829,7 @@ class TICC1101(object):
 
             dataToSend.append(data_len_inf_app)
             # extend the list with the data to send
-            dataToSend.extend(bytes)
+            dataToSend.extend(dataBytes)
 
             data_len = len(dataToSend)
 

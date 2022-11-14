@@ -429,9 +429,9 @@ class TICC1101(object):
     def setCarrierFrequencyHz(self, freq):
         reg_val = int(freq*2**16/self.REFCLK)
         assert(0<=reg_val<=0xFFFFFF)
-        self._writeSingleByte(self.FREQ2, freq >> 16)
-        self._writeSingleByte(self.FREQ1, (freq & 0xFFFF) >> 8)
-        self._writeSingleByte(self.FREQ0, (freq & 0xFF))
+        self._writeSingleByte(self.FREQ2, reg_val >> 16)
+        self._writeSingleByte(self.FREQ1, (reg_val & 0xFFFF) >> 8)
+        self._writeSingleByte(self.FREQ0, (reg_val & 0xFF))
 
     def getCarrierFrequency(self):
         return self.REFCLK * (

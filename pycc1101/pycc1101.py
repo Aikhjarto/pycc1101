@@ -1097,9 +1097,9 @@ class TICC1101(object):
     def setTXPower(self, paTableIdx):
         #Patable index: -30   -20   -15   -10     0     5     7    10 dBm
         if self.freq == 433:
-            patable = [0x12, 0x0E, 0x1D, 0x34, 0x60, 0x84, 0xC8, 0xC0]
+            patable = (0x12, 0x0E, 0x1D, 0x34, 0x60, 0x84, 0xC8, 0xC0)
         elif self.freq == 868:
-            patable = [0x03, 0x0F, 0x1E, 0x27, 0x50, 0x81, 0xCB, 0xC2]
+            patable = (0x03, 0x0F, 0x1E, 0x27, 0x50, 0x81, 0xCB, 0xC2)
         else:
             raise ValueError("No PA-table for this frequency. Only 433MHz and 868MHz are currently supported")
         self._writeSingleByte(self.PATABLE, patable[paTableIdx])

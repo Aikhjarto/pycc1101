@@ -417,6 +417,26 @@ class TICC1101(object):
         self._sidle()
         self._strobe(self.SPWD)
 
+    def calibrate(self):
+        """Manual calibration (CC1101 will be idle afterwards)"""
+        self._sidle()
+        self._strobe(self.SCAL)
+    
+    def setFSAutoCal(self, mode):
+        """
+        0 Never (manually calibrate using SCAL strobe)
+        1 When going from IDLE to RX or TX (or FSTXON)
+        2 When going from RX or TX back to IDLE automatically
+        3 Every 4th time when going from RX or TX to IDLE automatically
+        """
+        assert(0<=mode<=0x03)
+        tmp = self._readSingleByte(self.MCSM0)
+        tmp = (tmp & 0b11001111) | mode << 4
+        self._writeSingleByte(self.MCSM0, tmp)
+
+    def getFSAutoCal(self):
+        return (self._readSingleByte(self.MCSM0) & 0b00110000) >> 4
+
     def setCarrierFrequency(self, freq=433):
         # Register values extracted from SmartRF Studio 7
         if freq == 433:

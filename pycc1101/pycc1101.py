@@ -688,6 +688,42 @@ class TICC1101(object):
             if val == tmp:
                 return key
 
+    def setOptimumASKGainControl(self, MAGN_TARGET=0x05, DECISION_BOUNARY=0x01):
+        """
+        Automatic gain control settings from SmartRF are not considered 
+        optimal by Texas Instruments for ASK mode any more. 
+        See: http://www.ti.com/lit/swra215
+
+        Must be called after channel bandwidth is changed when ASK signals
+        should be received
+        """
+        assert(0x03 <= MAGN_TARGET <=0x07)
+        assert(0x01 <= DECISION_BOUNARY <= 0x02)
+        self._writeSingleByte(self.AGCCTRL2, MAGN_TARGET) # between 0x03 and 0x07
+        self._writeSingleByte(self.AGCCTRL1, 0x00)
+        self._writeSingleByte(self.AGCCTRL0, 0x90+DECISION_BOUNARY) #0x91 or 0x92
+
+        RX_FILTER_BANDWIDTH_HZ=self.getChannelBandwidth()
+
+        # FSCTRL1 should be first possible value greater than RX_FILTER_BANDWIDTH_HZ
+        val = int((RX_FILTER_BANDWIDTH_HZ*2**10)/self.REFCLK)+1
+        val = max(1,min(val,15))
+        self._writeSingleByte(self.FSCTRL1, val)
+
+        if RX_FILTER_BANDWIDTH_HZ > 101_000:
+            self._writeSingleByte(self.FREND1, 0xB6)
+        else:
+            self._writeSingleByte(self.FREND1, 0x56)
+        
+        if RX_FILTER_BANDWIDTH_HZ > 325_000:
+            self._writeSingleByte(self.TEST2, 0x88)
+            self._writeSingleByte(self.TEST1, 0x31)
+            self._writeSingleByte(self.FIFOTHR, 0x07)
+        else:
+            self._writeSingleByte(self.TEST2, 0x81)
+            self._writeSingleByte(self.TEST2, 0x35)
+            self._writeSingleByte(self.FIFOTHR, 0x47)
+
     def _flushRXFifo(self):
         self._strobe(self.SFRX)
         self._usDelay(2)

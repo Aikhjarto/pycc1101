@@ -150,6 +150,12 @@ class TICC1101(object):
     FSM_TXFIFO_UNDERFLOW = const(0x16)
     REFCLK = const(26_000_000)
 
+    # state names according to register value of MARC_STATE
+    STATES = ('SLEEP', 'IDLE', 'XOFF', 'VCOON_MC', 'REGON_MC', 'MANCAL', 
+              'VCOON', 'REGON', 'STARTCAL', 'BWBOOST', 'FS_LOCK', 'IFADCON', 
+              'ENDCAL', 'RX', 'RX_END', 'RX_RST', 'TXRX_SWITCH', 
+              'RXFIFO_OVERFLOW', 'FSTXON', 'TX', 'TX_END', 'RXTS_SWITCH')
+
     def __init__(self, spi, pCS, pGDO0, pGDO2, debug=True):
         self._spi = spi
         self._pCS = pCS
@@ -692,6 +698,12 @@ class TICC1101(object):
         # that the MARCSTATE register only uses the
         # first 5 bits
         return self._readSingleByte(self.MARCSTATE) & 0x1F
+
+    def getMRStateMachineState(self):
+        state = self._getMRStateMachineState()
+        if self.debug:
+            print(self.STATES[state])
+        return state
 
     # Returns the packet configuration
     def getPacketConfigurationMode(self):

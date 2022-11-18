@@ -676,14 +676,14 @@ class TICC1101(object):
         self._writeSingleByte(self.IOCFG2, (tmp & 0b11000000) | reg_val)  
     
     def setAsynchronousTransparentRXMode(self):
-        """From SmartRF Studio: RX data without sanity checks is sent do GPO2"""
+        """From SmartRF Studio: RX data without sanity checks is sent to GPO2 and GPO0"""
         self._writeSingleByte(self.MDMCFG2, 0x00)
         self._writeSingleByte(self.PKTCTRL0, 0x32)
         self.setGDO0Cfg(0x0D)
         self.setGDO2Cfg(0x0D)
 
     def setSynchronousTransparentRXMode(self):
-        """From SmartRF Studio: RX data without sanity checks is sent do GPO2 with a clock sent to GPO0"""
+        """From SmartRF Studio: RX data without sanity checks is sent to GPO0 with a clock sent to GPO2"""
         self._writeSingleByte(self.MDMCFG2, 0x00)
         self._writeSingleByte(self.PKTCTRL0, 0x12)
         self.setGDO0Cfg(0x0C)

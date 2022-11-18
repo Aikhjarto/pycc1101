@@ -678,12 +678,12 @@ class TICC1101(object):
     def setModulation(self, modulation):
         modVal = self.MODULATION_DICT[modulation]
         tmp = self._readSingleByte(self.MDMCFG2) 
-        tmp = (tmp & 0b11111000) | modVal
+        tmp = (tmp & 0b10001111) | (modVal << 4)
         self._writeSingleByte(self.MDMCFG2, tmp)
 
     def getModulation(self):
         tmp = self._readSingleByte(self.MDMCFG2)
-        tmp = tmp & 0b00000111
+        tmp = (tmp & 0b01110000) >> 4
         for key, val in self.MODULATION_DICT.items():
             if val == tmp:
                 return key

@@ -1167,6 +1167,13 @@ class TICC1101(object):
         #deviation = (self.REFCLK/2**17)*(8+m)*2**e = 47607.421875
         self._setDevtn(e,m)
 
+    def getDevtnHz(self):
+        """read modulation frequency for FSK"""
+        tmp = self._readSingleByte(self.DEVIATN)
+        DEVIATION_M = (tmp & 0b00000111)
+        DEVIATION_E = (tmp & 0b01110000) >> 4
+        return self.REFCLK/(2**17)*(8+DEVIATION_M)*2**DEVIATION_E
+
     def setFreqOffset(self, offset):
         if not -129 < offset < 128:
             raise ValueError("Offset needs to be between including -128 and +127")

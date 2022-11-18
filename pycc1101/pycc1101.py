@@ -485,6 +485,20 @@ class TICC1101(object):
     def getRXAttenuationdB(self):
         return ((self._readSingleByte(self.FIFOTHR) & 0b00110000) >> 4)*6
 
+    def setFIFOThreshold(self, percentage):
+        assert 0x00<=percentage<=0x0F
+        tmp = self._readSingleByte(self.FIFOTHR)
+        tmp = (tmp & 0b00001111) | percentage
+        self._writeSingleByte(self.FIFOTHR)
+
+    def getRXFIFOThreshold(self):
+        tmp = self._readSingleByte(self.FIFOTHR) & 0b00001111
+        return 4 + tmp * 4
+    
+    def getTXFIFOThreshold(self):
+        tmp = self._readSingleByte(self.FIFOTHR) & 0b00001111
+        return 61 - tmp * 4
+
     # Sets the sync-word - automatically added at the start
     # of the packet by the CC1101 transceiver
     def setSyncWord(self, sync_word="D391"):

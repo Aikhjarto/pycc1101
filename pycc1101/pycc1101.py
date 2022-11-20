@@ -1075,7 +1075,7 @@ class TICC1101(object):
     #Sets the baudrate (datasheet p. 35)
     def setBaud(self, baudrate):
         DRATE_E = int(math.log2((baudrate*(2**20))/self.REFCLK))
-        DRATE_M = int((baudrate*(2**28))/(self.REFCLK*(2**DRATE_E)))-256
+        DRATE_M = round((baudrate*(2**28))/(self.REFCLK*(2**DRATE_E)))-256
         if DRATE_M == 256:
             DRATE_M = 0
             DRATE_E += 1

@@ -196,7 +196,7 @@ class TICC1101(object):
             writeBuf[i] = (addr + i * 8) | self.READ_BURST
 
         self._write_readinto(writeBuf, buf)
-        return buf
+        return buf[1:]
 
     def _writeBurst(self, address, data):
         data.insert(0, (self.WRITE_BURST | address))

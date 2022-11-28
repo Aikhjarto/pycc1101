@@ -1195,3 +1195,23 @@ class TICC1101(object):
         frend0_tmp = self._readSingleByte(self.FREND0)
         frend0_tmp &= 0b11111000
         self._writeSingleByte(self.FREND0, frend0_tmp)
+
+    def setPATable(self, data):
+        """set up to 8 8-bit integers in PATable starting from index 0"""
+        assert 0<len(data)<=8
+        self._writeBurst(self.PATABLE, data)
+
+    def getPATable(self, N=8):
+        """returns the first N value of the 8-byte long PATable"""
+        assert 0<N<=8
+        self._readBurst(self.PATABLE,N)
+
+    def setPARampingSteps(self, N):
+        """use the first N bytes of PATable for ramp-up/ramp-down of symbols"""
+        assert 1<=N<=7
+        tmp = self._readSingleByte(self.FREND0)
+        tmp = (tmp & 0b11111000) | N
+        self._writeSingleByte(self.FREND0, tmp)
+
+    def getPARampingSteps(self):
+        return self._readSingleByte(self.FREND0) & 0b00000111

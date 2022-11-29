@@ -163,6 +163,7 @@ class TICC1101(object):
         self._pGDO2 = pGDO2
         self.debug = debug
         self.freq = 433
+        self.setDefaultValues()
 
     @staticmethod
     def _usDelay(useconds):

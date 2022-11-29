@@ -694,6 +694,20 @@ class TICC1101(object):
         tmp = self._readSingleByte(self.MDMCFG2) 
         tmp = (tmp & 0b10001111) | (modVal << 4)
         self._writeSingleByte(self.MDMCFG2, tmp)
+        if modulation == 'ASK' or modulation == 'OOK':
+            if self.freq == 433:
+                self.setPATable([0x0, 0xC0])  # 0: PA off, 1: 10 dBm
+            if self.freq == 868:                
+                self.setPATable([0x0, 0xC2])  # 0: PA off, 1: 10 dBm
+            frend0_tmp = self._readSingleByte(self.FREND0)
+            frend0_tmp &= 0b11111000
+            frend0_tmp |= 0b00000001  # use hard keying without ramping
+            self._writeSingleByte(self.FREND0, frend0_tmp)        
+        if modulation in ('2-FSK', 'GFSK', '4-FSK', 'MSK'):
+            self.setTXPower(7)  # 7 should correspond to 10 dBm
+            frend0_tmp = self._readSingleByte(self.FREND0)
+            frend0_tmp &= 0b11111000  # disable ramping
+            self._writeSingleByte(self.FREND0, frend0_tmp)
 
     def getModulation(self):
         tmp = self._readSingleByte(self.MDMCFG2)
@@ -1193,7 +1207,7 @@ class TICC1101(object):
             raise ValueError("No PA-table for this frequency. Only 433MHz and 868MHz are currently supported")
         self._writeSingleByte(self.PATABLE, patable[paTableIdx])
         frend0_tmp = self._readSingleByte(self.FREND0)
-        frend0_tmp &= 0b11111000
+        frend0_tmp &= 0b11111000  # no ramping
         self._writeSingleByte(self.FREND0, frend0_tmp)
 
     def setPATable(self, data):

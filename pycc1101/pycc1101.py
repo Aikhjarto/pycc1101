@@ -163,6 +163,7 @@ class TICC1101(object):
         self._pGDO2 = pGDO2
         self.debug = debug
         self.freq = 433
+        self.modulation = '2-FSK'
         self.setDefaultValues()
 
     @staticmethod
@@ -648,6 +649,9 @@ class TICC1101(object):
         self._writeSingleByte(self.TEST0, 0x09)
         self._writeSingleByte(0x3E, 0xC0)           # Power 10dBm
 
+        self.setModulation(self.modulation)
+        
+
     def setSyncMode(self, syncmode):
         regVal = self._readSingleByte(self.MDMCFG2)
         
@@ -709,6 +713,7 @@ class TICC1101(object):
             frend0_tmp = self._readSingleByte(self.FREND0)
             frend0_tmp &= 0b11111000  # disable ramping
             self._writeSingleByte(self.FREND0, frend0_tmp)
+        self.modulation = modulation
 
     def getModulation(self):
         tmp = self._readSingleByte(self.MDMCFG2)

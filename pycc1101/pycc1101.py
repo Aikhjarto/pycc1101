@@ -1224,7 +1224,7 @@ class TICC1101(object):
     def getPATable(self, N=8):
         """returns the first N value of the 8-byte long PATable"""
         assert 0<N<=8
-        self._readBurst(self.PATABLE,N)
+        return self._readBurst(self.PATABLE,N)
 
     def setPARampingSteps(self, N):
         """use the first N bytes of PATable for ramp-up/ramp-down of symbols"""

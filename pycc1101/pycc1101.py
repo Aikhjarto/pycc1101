@@ -387,10 +387,10 @@ class TICC1101(object):
         # These asserts are based on the documentation
         # Section 29.3 "Status Register Details"
         # On reset PARTNUM == 0x00
-        # On reset VERSION == 0x14
+        # On reset VERSION == 0x14 but subject to change without notice
 
         assert part_number == 0x00, "Self test: Wrong part number"
-        assert component_version == 0x14, "Self test: Wrong component version"
+        assert 0x14 <= component_version <= 0x17, "Self test: Wrong component version"
 
         self._writeSingleByte(self.IOCFG0, 0x2f)  # set to low
         assert self._pGDO0.value() == 0, "Self test: GDO0 should be low"
